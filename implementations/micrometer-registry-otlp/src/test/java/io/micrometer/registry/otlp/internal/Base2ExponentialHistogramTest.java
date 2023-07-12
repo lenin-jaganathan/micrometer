@@ -51,8 +51,8 @@ class Base2ExponentialHistogramTest {
         // 1 Always belongs to index 0.
         base2ExponentialHistogram.recordDouble(1.000000000001);
         assertThat(base2ExponentialHistogram.getScale()).isEqualTo(MAX_SCALE);
-        assertThat(base2ExponentialHistogram.getCurrentValuesSnapshot().zeroCount()).isZero();
-        assertThat(getAllBucketsCountSum(base2ExponentialHistogram.getCurrentValuesSnapshot())).isEqualTo(1);
+        assertThat(base2ExponentialHistogram.getCurrentValuesSnapshot(false).zeroCount()).isZero();
+        assertThat(getAllBucketsCountSum(base2ExponentialHistogram.getCurrentValuesSnapshot(false))).isEqualTo(1);
     }
 
     @Test
@@ -66,11 +66,11 @@ class Base2ExponentialHistogramTest {
                                                                               // calling
                                                                               // recordDouble(2).
 
-        ExponentialHistogramSnapShot currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        ExponentialHistogramSnapShot currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentSnapshot.zeroCount()).isEqualTo(1);
         assertThat(currentSnapshot.scale()).isEqualTo(MAX_SCALE);
         assertThat(getAllBucketsCountSum(currentSnapshot)).isEqualTo(1);
-        assertThat(base2ExponentialHistogram.getCurrentValuesSnapshot().offset()).isEqualTo(1023);
+        assertThat(base2ExponentialHistogram.getCurrentValuesSnapshot(false).offset()).isEqualTo(1023);
     }
 
     @Test
@@ -85,18 +85,18 @@ class Base2ExponentialHistogramTest {
         // This should be same as calling recordDouble(0.05).
         base2ExponentialHistogram.recordLong(Duration.ofMillis(50).toNanos());
 
-        ExponentialHistogramSnapShot currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        ExponentialHistogramSnapShot currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentSnapshot.zeroCount()).isEqualTo(1);
         assertThat(currentSnapshot.scale()).isEqualTo(MAX_SCALE);
         assertThat(getAllBucketsCountSum(currentSnapshot)).isEqualTo(1);
-        assertThat(base2ExponentialHistogram.getCurrentValuesSnapshot().offset()).isEqualTo(-4426);
+        assertThat(base2ExponentialHistogram.getCurrentValuesSnapshot(false).offset()).isEqualTo(-4426);
 
         base2ExponentialHistogram.recordLong(Duration.ofMillis(90).toNanos());
-        currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentSnapshot.zeroCount()).isEqualTo(1);
         assertThat(currentSnapshot.scale()).isEqualTo(4);
         assertThat(getAllBucketsCountSum(currentSnapshot)).isEqualTo(2);
-        assertThat(base2ExponentialHistogram.getCurrentValuesSnapshot().offset()).isEqualTo(-70);
+        assertThat(base2ExponentialHistogram.getCurrentValuesSnapshot(false).offset()).isEqualTo(-70);
     }
 
     @Test
@@ -105,7 +105,7 @@ class Base2ExponentialHistogramTest {
         base2ExponentialHistogram.recordDouble(0.0);
         base2ExponentialHistogram.recordDouble(0.5);
 
-        ExponentialHistogramSnapShot currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        ExponentialHistogramSnapShot currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentSnapshot.zeroCount()).isEqualTo(3);
         assertThat(currentSnapshot.scale()).isEqualTo(MAX_SCALE);
         assertThat(getAllBucketsCountSum(currentSnapshot)).isZero();
@@ -115,7 +115,7 @@ class Base2ExponentialHistogramTest {
     void testDownScale() {
         base2ExponentialHistogram.recordDouble(1.0001);
 
-        ExponentialHistogramSnapShot currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        ExponentialHistogramSnapShot currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentSnapshot.zeroCount()).isZero();
         assertThat(currentSnapshot.scale()).isEqualTo(MAX_SCALE);
         assertThat(getAllBucketsCountSum(currentSnapshot)).isEqualTo(1);
@@ -173,11 +173,11 @@ class Base2ExponentialHistogramTest {
 
     @Test
     void testValuesAtIndices() {
-        ExponentialHistogramSnapShot currentValueSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        ExponentialHistogramSnapShot currentValueSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentValueSnapshot.bucketsCount()).isEmpty();
 
         base2ExponentialHistogram.recordDouble(1.0001);
-        currentValueSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        currentValueSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentValueSnapshot.offset()).isZero();
         assertThat(currentValueSnapshot.bucketsCount().get(0)).isEqualTo(1);
         assertThat(currentValueSnapshot.bucketsCount()).filteredOn(value -> value == 0).isEmpty();
@@ -186,7 +186,7 @@ class Base2ExponentialHistogramTest {
 
         base2ExponentialHistogram.recordDouble(1.0076);
         base2ExponentialHistogram.recordDouble(1.008);
-        currentValueSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        currentValueSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentValueSnapshot.offset()).isZero();
         assertThat(base2ExponentialHistogram.getScale()).isEqualTo(MAX_SCALE);
         assertThat(currentValueSnapshot.bucketsCount().get(0)).isEqualTo(1);
@@ -197,7 +197,7 @@ class Base2ExponentialHistogramTest {
         // We will record a value that will downscale by 1 and this should merge 2
         // consecutive buckets into one.
         base2ExponentialHistogram.recordDouble(1.012);
-        currentValueSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        currentValueSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentValueSnapshot.offset()).isZero();
         assertThat(base2ExponentialHistogram.getScale()).isEqualTo(MAX_SCALE - 1);
         assertThat(currentValueSnapshot.bucketsCount().get(0)).isEqualTo(2);
@@ -207,7 +207,7 @@ class Base2ExponentialHistogramTest {
 
         // The base will reduced by a factor of more than one,
         base2ExponentialHistogram.recordDouble(4);
-        currentValueSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        currentValueSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentValueSnapshot.offset()).isZero();
         assertThat(base2ExponentialHistogram.getScale()).isEqualTo(3);
         assertThat(currentValueSnapshot.bucketsCount().get(0)).isEqualTo(5);
@@ -232,14 +232,14 @@ class Base2ExponentialHistogramTest {
         base2ExponentialHistogram.recordDouble(1);
         base2ExponentialHistogram.recordDouble(2);
 
-        ExponentialHistogramSnapShot currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        ExponentialHistogramSnapShot currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentSnapshot.zeroCount()).isEqualTo(1);
         assertThat(currentSnapshot.scale()).isEqualTo(MAX_SCALE);
         assertThat(currentSnapshot.offset()).isEqualTo(1023);
         assertThat(getAllBucketsCountSum(currentSnapshot)).isEqualTo(1);
 
         base2ExponentialHistogram.reset();
-        currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot();
+        currentSnapshot = base2ExponentialHistogram.getCurrentValuesSnapshot(false);
         assertThat(currentSnapshot.zeroCount()).isZero();
         assertThat(currentSnapshot.scale()).isEqualTo(MAX_SCALE);
         assertThat(currentSnapshot.offset()).isZero();
